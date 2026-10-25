@@ -22,6 +22,7 @@ dependencies:
   path_provider: ^2.1.2
   mime: ^1.0.4
   image_picker: ^1.0.7
+  webview_flutter: ^4.7.0
 
 dev_dependencies:
   flutter_test:
