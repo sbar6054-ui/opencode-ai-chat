@@ -14,31 +14,43 @@ class DrawerScreen extends StatelessWidget {
         children: [
           DrawerHeader(
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
+              gradient: LinearGradient(
+                colors: [Theme.of(context).colorScheme.primary, const Color(0xFF3B82F6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Icon(
-                  Icons.chat_bubble_outline,
-                  size: 40,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'OpenCode AI Chat',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    size: 30,
+                    color: Colors.white,
                   ),
                 ),
-                Text(
-                  'Free Models Collection',
+                const SizedBox(height: 8),
+                const Text(
+                  'GMpro87Ai',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const Text(
+                  'Free AI Chat • All Files',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    color: Colors.white70,
                   ),
                 ),
               ],
@@ -46,7 +58,7 @@ class DrawerScreen extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.add),
-            title: const Text('New Chat'),
+            title: const Text('Chat Baru'),
             onTap: () {
               provider.createNewChat();
               Navigator.pop(context);
@@ -72,19 +84,19 @@ class DrawerScreen extends StatelessWidget {
                       showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: const Text('Delete Chat'),
-                          content: const Text('Are you sure you want to delete this chat?'),
+                          title: const Text('Hapus Chat'),
+                          content: const Text('Yakin mau hapus chat ini?'),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
+                              child: const Text('Batal'),
                             ),
                             TextButton(
                               onPressed: () {
                                 provider.deleteChat(chat.id);
                                 Navigator.pop(context);
                               },
-                              child: const Text('Delete'),
+                              child: const Text('Hapus'),
                             ),
                           ],
                         ),

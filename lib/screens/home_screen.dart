@@ -21,9 +21,27 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       drawer: const DrawerScreen(),
       appBar: AppBar(
-        title: Text(
-          provider.currentChat!.title,
-          overflow: TextOverflow.ellipsis,
+        title: Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF22D3EE), Color(0xFF3B82F6)],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                provider.currentChat!.title,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
         actions: [
           IconButton(

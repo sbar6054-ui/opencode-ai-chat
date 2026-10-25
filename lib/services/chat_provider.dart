@@ -1,29 +1,29 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
-import 'openrouter_service.dart';
+import 'ai_service.dart';
 
 class ChatProvider with ChangeNotifier {
-  final OpenRouterService _service = OpenRouterService();
+  final AIService _service = AIService();
   List<Chat> _chats = [];
   String? _currentChatId;
-  String _apiKey = '';
-  String _selectedModel = 'google/gemma-2-9b-it:free';
+  String _selectedModel = 'openai';
 
   final List<Map<String, String>> _freeModels = [
-    {'id': 'google/gemma-2-9b-it:free', 'name': 'Google Gemma 2 9B'},
-    {'id': 'google/gemma-2-27b-it:free', 'name': 'Google Gemma 2 27B'},
-    {'id': 'meta-llama/llama-3.1-8b-instruct:free', 'name': 'Llama 3.1 8B'},
-    {'id': 'meta-llama/llama-3.2-3b-instruct:free', 'name': 'Llama 3.2 3B'},
-    {'id': 'mistralai/mistral-7b-instruct:free', 'name': 'Mistral 7B'},
-    {'id': 'microsoft/phi-3-mini-128k-instruct:free', 'name': 'Phi-3 Mini'},
-    {'id': 'huggingfaceh4/zephyr-7b-beta:free', 'name': 'Zephyr 7B'},
-    {'id': 'qwen/qwen2-7b-instruct:free', 'name': 'Qwen 2 7B'},
-    {'id': 'deepseek/deepseek-chat-v3-0324:free', 'name': 'DeepSeek Chat V3'},
+    {'id': 'openai', 'name': 'GPT'},
+    {'id': 'mistral', 'name': 'Mistral'},
+    {'id': 'llama', 'name': 'Llama'},
+    {'id': 'gemini', 'name': 'Gemini'},
+    {'id': 'flux', 'name': 'Flux'},
   ];
+
+  String? _attachedFileName;
+  String? _attachedFileContent;
 
   ChatProvider() {
     _loadData();
@@ -31,9 +31,10 @@ class ChatProvider with ChangeNotifier {
 
   List<Chat> get chats => _chats;
   String? get currentChatId => _currentChatId;
-  String get apiKey => _apiKey;
   String get selectedModel => _selectedModel;
   List<Map<String, String>> get freeModels => _freeModels;
+  String? get attachedFileName => _attachedFileName;
+  String? get attachedFileContent => _attachedFileContent;
 
   Chat? get currentChat {
     if (_currentChatId == null) return null;
@@ -46,8 +47,7 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    _apiKey = prefs.getString('api_key') ?? '';
-    _selectedModel = prefs.getString('selected_model') ?? 'google/gemma-2-9b-it:free';
+    _selectedModel = prefs.getString('selected_model') ?? 'openai';
     final chatsJson = prefs.getString('chats');
     if (chatsJson != null) {
       final List decoded = jsonDecode(chatsJson);
@@ -63,16 +63,9 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> saveData() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('api_key', _apiKey);
     await prefs.setString('selected_model', _selectedModel);
     final chatsJson = jsonEncode(_chats.map((c) => c.toJson()).toList());
     await prefs.setString('chats', chatsJson);
-  }
-
-  void setApiKey(String key) {
-    _apiKey = key;
-    saveData();
-    notifyListeners();
   }
 
   void setSelectedModel(String model) {
@@ -81,11 +74,48 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> pickFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        File file = File(result.files.single.path!);
+        String content = await file.readAsString();
+        _attachedFileName = result.files.single.name;
+        _attachedFileContent = content;
+        notifyListeners();
+      }
+    } catch (e) {
+      // Try to read as bytes/text anyway
+      try {
+        FilePickerResult? result = await FilePicker.platform.pickFiles(
+          type: FileType.any,
+        );
+        if (result != null && result.files.single.bytes != null) {
+          _attachedFileName = result.files.single.name;
+          _attachedFileContent = String.fromCharCodes(result.files.single.bytes!);
+          notifyListeners();
+        }
+      } catch (e2) {
+        print(e2);
+      }
+    }
+  }
+
+  void clearAttachment() {
+    _attachedFileName = null;
+    _attachedFileContent = null;
+    notifyListeners();
+  }
+
   void createNewChat() {
     const uuid = Uuid();
     final chat = Chat(
       id: uuid.v4(),
-      title: 'New Chat',
+      title: 'Chat Baru',
       messages: [],
       createdAt: DateTime.now(),
     );
@@ -104,38 +134,31 @@ class ChatProvider with ChangeNotifier {
     if (currentChat == null) return;
     const uuid = Uuid();
 
+    String messageContent = content;
+    if (_attachedFileName != null) {
+      messageContent = '[$_attachedFileName]\n$content';
+    }
+
     final userMessage = Message(
       id: uuid.v4(),
-      content: content,
+      content: messageContent,
       isUser: true,
       timestamp: DateTime.now(),
     );
     currentChat!.messages.add(userMessage);
 
-    if (currentChat!.title == 'New Chat' && currentChat!.messages.length == 1) {
+    if (currentChat!.title == 'Chat Baru' && currentChat!.messages.length == 1) {
       currentChat!.title = content.length > 30 ? '${content.substring(0, 30)}...' : content;
     }
 
     notifyListeners();
 
-    if (_apiKey.isEmpty) {
-      final errorMessage = Message(
-        id: uuid.v4(),
-        content: 'Error: API Key belum diisi. Silahkan isi API Key OpenRouter kamu di pengaturan.',
-        isUser: false,
-        timestamp: DateTime.now(),
-      );
-      currentChat!.messages.add(errorMessage);
-      saveData();
-      notifyListeners();
-      return;
-    }
-
     try {
       final response = await _service.sendMessage(
-        apiKey: _apiKey,
         model: _selectedModel,
         messages: currentChat!.messages,
+        fileContent: _attachedFileContent,
+        fileName: _attachedFileName,
       );
 
       final aiMessage = Message(
@@ -145,6 +168,7 @@ class ChatProvider with ChangeNotifier {
         timestamp: DateTime.now(),
       );
       currentChat!.messages.add(aiMessage);
+      clearAttachment();
       saveData();
       notifyListeners();
     } catch (e) {
@@ -155,6 +179,7 @@ class ChatProvider with ChangeNotifier {
         timestamp: DateTime.now(),
       );
       currentChat!.messages.add(errorMessage);
+      clearAttachment();
       saveData();
       notifyListeners();
     }

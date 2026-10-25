@@ -16,12 +16,12 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => ChatProvider(),
       child: MaterialApp(
-        title: 'OpenCode AI Chat',
+        title: 'GMpro87Ai',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF6366F1),
+            seedColor: const Color(0xFF22D3EE),
             brightness: Brightness.light,
           ),
           textTheme: GoogleFonts.interTextTheme(),
@@ -29,10 +29,11 @@ class MyApp extends StatelessWidget {
         darkTheme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF6366F1),
+            seedColor: const Color(0xFF22D3EE),
             brightness: Brightness.dark,
           ),
           textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+          scaffoldBackgroundColor: const Color(0xFF0F1026),
         ),
         themeMode: ThemeMode.dark,
         home: const HomeScreen(),

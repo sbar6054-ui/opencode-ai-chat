@@ -29,7 +29,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _sendMessage() async {
-    if (_controller.text.trim().isEmpty) return;
+    if (_controller.text.trim().isEmpty && Provider.of<ChatProvider>(context, listen: false).attachedFileName == null) return;
     final provider = Provider.of<ChatProvider>(context, listen: false);
     
     setState(() {
@@ -61,19 +61,33 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.chat_bubble_outline,
-                        size: 64,
-                        color: Theme.of(context).colorScheme.primary,
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF22D3EE), Color(0xFF3B82F6)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome,
+                          size: 40,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'OpenCode AI Chat',
-                        style: Theme.of(context).textTheme.headlineSmall,
+                        'GMpro87Ai',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Pilih model gratis & mulai ngobrol',
+                        'AI Gratis • Bisa baca semua file',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
@@ -91,6 +105,32 @@ class _ChatScreenState extends State<ChatScreen> {
                   },
                 ),
         ),
+        if (provider.attachedFileName != null)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.attach_file, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    provider.attachedFileName!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                  onPressed: () => provider.clearAttachment(),
+                ),
+              ],
+            ),
+          ),
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -103,11 +143,15 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           child: Row(
             children: [
+              IconButton(
+                onPressed: _isSending ? null : () => provider.pickFile(),
+                icon: const Icon(Icons.attach_file),
+              ),
               Expanded(
                 child: TextField(
                   controller: _controller,
                   decoration: InputDecoration(
-                    hintText: 'Ketik pesan...',
+                    hintText: 'Ketik pesan atau kirim file...',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
@@ -152,11 +196,19 @@ class _ChatScreenState extends State<ChatScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!message.isUser) ...[
-            CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              child: Icon(
-                Icons.smart_toy,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF22D3EE), Color(0xFF3B82F6)],
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.auto_awesome,
+                size: 20,
+                color: Colors.white,
               ),
             ),
             const SizedBox(width: 8),

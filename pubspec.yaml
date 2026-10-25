@@ -1,5 +1,5 @@
-name: opencode_ai_chat
-description: A simple AI chat app with free models via OpenRouter
+name: gmpro87_ai
+description: GMpro87Ai - Free AI Chat
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -18,6 +18,9 @@ dependencies:
   url_launcher: ^6.2.4
   google_fonts: ^6.1.0
   intl: ^0.19.0
+  file_picker: ^6.1.1
+  path_provider: ^2.1.2
+  mime: ^1.0.4
 
 dev_dependencies:
   flutter_test:
@@ -26,5 +29,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # assets:
-
