@@ -39,23 +39,14 @@ class _WebViewScreenState extends State<WebViewScreen> {
     super.initState();
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setDomStorageEnabled(true)
       ..setBackgroundColor(const Color(0xFF0F1026))
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            if (mounted) {
-              setState(() {
-                isLoading = true;
-              });
-            }
+            if (mounted) setState(() => isLoading = true);
           },
           onPageFinished: (String url) {
-            if (mounted) {
-              setState(() {
-                isLoading = false;
-              });
-            }
+            if (mounted) setState(() => isLoading = false);
           },
         ),
       )
@@ -70,9 +61,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
           children: [
             WebViewWidget(controller: controller),
             if (isLoading)
-              const Center(
-                child: CircularProgressIndicator(),
-              ),
+              const Center(child: CircularProgressIndicator()),
           ],
         ),
       ),
