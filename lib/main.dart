@@ -3,6 +3,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF151515),
+        scaffoldBackgroundColor: const Color(0xFF0a0a0a),
       ),
       home: const WebViewScreen(),
     );
@@ -41,9 +42,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF151515))
+      ..setBackgroundColor(const Color(0xFF0a0a0a))
+      ..enableZoom(false)
       ..setUserAgent(
-          'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36')
+          'Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36')
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
@@ -60,23 +62,40 @@ class _WebViewScreenState extends State<WebViewScreen> {
       ..loadRequest(Uri.parse('https://app.opencode.ai/'));
 
     if (controller.platform is AndroidWebViewController) {
+      final androidController = controller.platform as AndroidWebViewController;
       AndroidWebViewController.enableDebugging(false);
-      (controller.platform as AndroidWebViewController)
-          .setMediaPlaybackRequiresUserGesture(false);
+      androidController.setMediaPlaybackRequiresUserGesture(false);
+      androidController.setGeolocationPermissionsPromptCallbacks(
+        onShowPrompt: (GeolocationPermissionsRequestParams request) async {
+          return GeolocationPermissionShowPromptResponse(
+            origin: request.origin,
+            allow: true,
+            retain: false,
+          );
+        },
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF151515),
+      backgroundColor: const Color(0xFF0a0a0a),
       body: SafeArea(
+        top: true,
+        bottom: true,
         child: Stack(
           children: [
             WebViewWidget(controller: controller),
             if (isLoading)
-              const Center(
-                child: CircularProgressIndicator(color: Colors.white),
+              Container(
+                color: const Color(0xFF0a0a0a),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                ),
               ),
           ],
         ),
