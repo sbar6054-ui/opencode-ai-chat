@@ -12,14 +12,22 @@ class ChatProvider with ChangeNotifier {
   final AIService _service = AIService();
   List<Chat> _chats = [];
   String? _currentChatId;
-  String _selectedModel = 'openai';
+  String _selectedModel = 'big-pickle';
 
   final List<Map<String, String>> _freeModels = [
-    {'id': 'openai', 'name': 'GPT'},
+    {'id': 'big-pickle', 'name': 'Big Pickle'},
+    {'id': 'nemotron-3.5-super-vl', 'name': 'Nemotron 3.5 Super VL'},
+    {'id': 'nemotron-3-ultra', 'name': 'Nemotron 3 Ultra'},
+    {'id': 'mimo-v2.6-flash', 'name': 'MiMo-V2.6-Flash'},
+    {'id': 'nemotron-3.5-lightning', 'name': 'Nemotron 3.5 Lightning'},
+    {'id': 'beam', 'name': 'Beam'},
+    {'id': 'glm-5.3-flash', 'name': 'GLM-5.3-Flash'},
+    {'id': 'flint-40b', 'name': 'Flint 40B'},
+    {'id': 'deepseek-v4.1-flash', 'name': 'DeepSeek V4.1 Flash'},
+    {'id': 'openai', 'name': 'OpenAI'},
     {'id': 'mistral', 'name': 'Mistral'},
     {'id': 'llama', 'name': 'Llama'},
     {'id': 'gemini', 'name': 'Gemini'},
-    {'id': 'flux', 'name': 'Flux'},
   ];
 
   String? _attachedFileName;
@@ -47,7 +55,7 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    _selectedModel = prefs.getString('selected_model') ?? 'openai';
+    _selectedModel = prefs.getString('selected_model') ?? 'big-pickle';
     final chatsJson = prefs.getString('chats');
     if (chatsJson != null) {
       final List decoded = jsonDecode(chatsJson);
@@ -89,7 +97,6 @@ class ChatProvider with ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      // Try to read as bytes/text anyway
       try {
         FilePickerResult? result = await FilePicker.platform.pickFiles(
           type: FileType.any,
