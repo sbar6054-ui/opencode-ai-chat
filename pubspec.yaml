@@ -21,6 +21,7 @@ dependencies:
   file_picker: ^6.1.1
   path_provider: ^2.1.2
   mime: ^1.0.4
+  image_picker: ^1.0.7
 
 dev_dependencies:
   flutter_test:
@@ -29,4 +30,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  image_picker: ^1.0.7
