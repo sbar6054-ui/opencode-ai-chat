@@ -40,6 +40,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFF0F1026))
+      ..setUserAgent(
+          'Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36')
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
@@ -48,9 +50,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
           onPageFinished: (String url) {
             if (mounted) setState(() => isLoading = false);
           },
+          onWebResourceError: (WebResourceError error) {},
         ),
       )
-      ..loadRequest(Uri.parse('https://opencode.ai/'));
+      ..loadRequest(Uri.parse('https://app.opencode.ai'));
   }
 
   @override
@@ -61,7 +64,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
           children: [
             WebViewWidget(controller: controller),
             if (isLoading)
-              const Center(child: CircularProgressIndicator()),
+              const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
           ],
         ),
       ),
