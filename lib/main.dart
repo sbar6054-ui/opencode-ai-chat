@@ -46,7 +46,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       ..setBackgroundColor(const Color(0xFF0a0a0a))
       ..enableZoom(false)
       ..setUserAgent(
-          'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36')
+          'Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36')
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
@@ -77,7 +77,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
           },
         ),
       )
-      ..loadRequest(Uri.parse('https://app.opencode.ai/'));
+      ..loadRequest(Uri.parse('https://opencode.ai/'));
 
     if (controller.platform is AndroidWebViewController) {
       final androidController = controller.platform as AndroidWebViewController;
