@@ -65,15 +65,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
       final androidController = controller.platform as AndroidWebViewController;
       AndroidWebViewController.enableDebugging(false);
       androidController.setMediaPlaybackRequiresUserGesture(false);
-      androidController.setGeolocationPermissionsPromptCallbacks(
-        onShowPrompt: (GeolocationPermissionsRequestParams request) async {
-          return GeolocationPermissionShowPromptResponse(
-            origin: request.origin,
-            allow: true,
-            retain: false,
-          );
-        },
-      );
     }
   }
 
@@ -82,8 +73,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0a0a0a),
       body: SafeArea(
-        top: true,
-        bottom: true,
         child: Stack(
           children: [
             WebViewWidget(controller: controller),
