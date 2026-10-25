@@ -39,6 +39,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
     super.initState();
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setDomStorageEnabled(true)
       ..setBackgroundColor(const Color(0xFF0F1026))
       ..setNavigationDelegate(
         NavigationDelegate(
@@ -58,7 +59,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
           },
         ),
       )
-      ..loadRequest(Uri.parse('https://app.opencode.ai/'));
+      ..loadRequest(Uri.parse('https://opencode.ai/'));
   }
 
   @override
