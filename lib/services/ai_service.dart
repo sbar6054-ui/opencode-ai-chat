@@ -20,8 +20,9 @@ class AIService {
     String userMessage = '';
     if (messages.isNotEmpty) {
       for (var msg in messages.reversed) {
-        if (msg.isUser) {
-          userMessage = msg.content.toString();
+        final content = msg.content;
+        if (msg.isUser == true) {
+          userMessage = content.toString();
           break;
         }
       }
@@ -36,11 +37,9 @@ class AIService {
       cleanMessage = 'Analisis gambar ini dengan detail';
     }
 
-    // Coba model yang dipilih dulu
     String result = await _tryModel(
       model: model,
       cleanMessage: cleanMessage,
-      userMessage: userMessage,
       fileContent: fileContent,
       fileName: fileName,
       imageBase64: imageBase64,
@@ -50,13 +49,11 @@ class AIService {
       return result;
     }
 
-    // Auto fallback ke model lain kalo error
     for (String fallback in _fallbackModels) {
       if (fallback == model) continue;
       String fbResult = await _tryModel(
         model: fallback,
         cleanMessage: cleanMessage,
-        userMessage: userMessage,
         fileContent: fileContent,
         fileName: fileName,
         imageBase64: imageBase64,
@@ -72,7 +69,6 @@ class AIService {
   Future<String> _tryModel({
     required String model,
     required String cleanMessage,
-    required String userMessage,
     String? fileContent,
     String? fileName,
     String? imageBase64,
@@ -126,8 +122,8 @@ class AIService {
 
       String prompt = 'You are GMpro87Ai, a helpful, smart and detailed AI assistant.\n\n';
       if (fileContent != null && fileName != null) {
-        String filePrompt = fileContent.length > 8000 
-            ? fileContent.substring(0, 8000) + '\n\n[File truncated...]' 
+        String filePrompt = fileContent.length > 8000
+            ? fileContent.substring(0, 8000) + '\n\n[File truncated...]'
             : fileContent;
         prompt += 'File: $fileName\n$filePrompt\n\n';
       }
@@ -135,7 +131,7 @@ class AIService {
 
       final encoded = Uri.encodeComponent(prompt);
       final uri = Uri.parse('https://text.pollinations.ai/$encoded?model=$model');
-      
+
       final res = await http.get(uri).timeout(const Duration(seconds: 60));
 
       if (res.statusCode == 200 && res.body.trim().isNotEmpty) {
