@@ -16,15 +16,15 @@ class ChatProvider with ChangeNotifier {
   String _selectedModel = 'openai';
 
   final List<Map<String, String>> _freeModels = [
-    {'id': 'openai', 'name': 'GPT (OpenAI)'},
+    {'id': 'openai', 'name': 'GPT (OpenAI) [Vision]'},
+    {'id': 'gemini', 'name': 'Google Gemini [Vision]'},
+    {'id': 'big-pickle', 'name': 'Big Pickle [Vision]'},
     {'id': 'mistral', 'name': 'Mistral'},
     {'id': 'llama', 'name': 'LLaMA'},
-    {'id': 'gemini', 'name': 'Google Gemini'},
     {'id': 'deepseek', 'name': 'DeepSeek'},
     {'id': 'qwen', 'name': 'Qwen'},
     {'id': 'groq', 'name': 'Groq'},
     {'id': 'claude', 'name': 'Claude'},
-    {'id': 'big-pickle', 'name': 'Big Pickle'},
     {'id': 'phi', 'name': 'Phi'},
     {'id': 'kimi', 'name': 'Kimi'},
   ];
@@ -108,7 +108,6 @@ class ChatProvider with ChangeNotifier {
           notifyListeners();
           return;
         } catch (e) {
-          // try bytes
         }
       }
       if (result != null && result.files.single.bytes != null) {
@@ -130,6 +129,10 @@ class ChatProvider with ChangeNotifier {
         _attachedImagePath = image.path;
         _attachedImageBase64 = base64Encode(bytes);
         _attachedFileName = image.name;
+        if (!_visionModels.contains(_selectedModel)) {
+          _selectedModel = 'openai';
+          await saveData();
+        }
         notifyListeners();
       }
     } catch (e) {
@@ -173,6 +176,11 @@ class ChatProvider with ChangeNotifier {
       messageContent = '[$_attachedFileName] ${content.isEmpty ? "Analisis file ini" : content}';
     } else if (_attachedImageBase64 != null) {
       messageContent = '[Image: $_attachedFileName] ${content.isEmpty ? "Analisis gambar ini" : content}';
+      if (!_visionModels.contains(_selectedModel)) {
+        _selectedModel = 'openai';
+        await saveData();
+        notifyListeners();
+      }
     }
 
     final userMessage = Message(
@@ -191,20 +199,6 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_attachedImageBase64 != null && !supportsVision) {
-        final errorMessage = Message(
-          id: uuid.v4(),
-          content: 'Model ini nggak support gambar. Pake model yang ada icon vision atau pilih OpenAI/Gemini/Big Pickle ya.',
-          isUser: false,
-          timestamp: DateTime.now(),
-        );
-        currentChat!.messages.add(errorMessage);
-        clearAttachment();
-        saveData();
-        notifyListeners();
-        return;
-      }
-
       final response = await _service.sendMessage(
         model: _selectedModel,
         messages: currentChat!.messages,
