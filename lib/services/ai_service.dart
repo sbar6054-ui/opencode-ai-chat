@@ -1,101 +1,93 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/message.dart';
 
 class AIService {
-  static const String baseUrl = 'https://text.pollinations.ai/';
-
   Future<String> sendMessage({
     required String model,
-    required List<Message> messages,
+    required List messages,
     String? fileContent,
     String? fileName,
     String? imageBase64,
   }) async {
     try {
-      String systemPrompt = 'You are GMpro87Ai, a helpful and intelligent AI assistant. Be concise, accurate, and helpful.';
-      
       String userMessage = '';
       if (messages.isNotEmpty) {
-        for (var msg in messages) {
+        for (var msg in messages.reversed) {
           if (msg.isUser) {
-            userMessage = msg.content;
+            userMessage = msg.content.toString();
+            break;
           }
         }
       }
 
-      if (imageBase64 != null) {
-        try {
-          final response = await http.post(
-            Uri.parse('https://text.pollinations.ai/openai'),
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({
-              'model': model,
-              'messages': [
-                {'role': 'system', 'content': systemPrompt},
-                {
-                  'role': 'user',
-                  'content': [
-                    {'type': 'text', 'text': userMessage.replaceAll('[Image: $fileName]', '').trim().isEmpty ? 'Describe this image' : userMessage.replaceAll('[Image: $fileName]', '').trim()},
-                    {'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,$imageBase64'}}
-                  ]
-                }
-              ],
-              'max_tokens': 1024,
-            }),
-          );
+      String cleanMessage = userMessage
+          .replaceAll(RegExp(r'\[.*?\]\n?'), '')
+          .trim();
 
-          if (response.statusCode == 200) {
-            final data = jsonDecode(response.body);
+      if (imageBase64 != null && fileName != null) {
+        try {
+          final res = await http
+              .post(
+                Uri.parse('https://text.pollinations.ai/openai'),
+                headers: {'Content-Type': 'application/json'},
+                body: jsonEncode({
+                  'model': model,
+                  'messages': [
+                    {
+                      'role': 'system',
+                      'content':
+                          'You are GMpro87Ai, a helpful and intelligent AI assistant.'
+                    },
+                    {
+                      'role': 'user',
+                      'content': [
+                        {
+                          'type': 'text',
+                          'text': cleanMessage.isEmpty
+                              ? 'Describe this image'
+                              : cleanMessage
+                        },
+                        {
+                          'type': 'image_url',
+                          'image_url': {'url': 'data:image/jpeg;base64,$imageBase64'}
+                        }
+                      ]
+                    }
+                  ],
+                  'temperature': 0.7,
+                  'max_tokens': 2048,
+                }),
+              )
+              .timeout(const Duration(seconds: 90));
+
+          if (res.statusCode == 200) {
+            final data = jsonDecode(res.body);
             if (data['choices'] != null && data['choices'].isNotEmpty) {
-              return data['choices'][0]['message']['content'] ?? response.body;
+              return data['choices'][0]['message']['content'] ?? res.body;
             }
-            return response.body;
+            return res.body;
           }
         } catch (e) {
-          // fallback
+          // fall through to text only
         }
       }
 
-      String finalPrompt;
-      if (fileContent != null && fileName != null && imageBase64 == null) {
-        finalPrompt = '$systemPrompt\n\nThe user has uploaded a file: $fileName\nFile content:\n$fileContent\n\nUser: $userMessage';
-      } else {
-        finalPrompt = '$systemPrompt\n\nUser: $userMessage';
+      String prompt = 'You are GMpro87Ai, a helpful and intelligent AI assistant.\n\n';
+      if (fileContent != null && fileName != null) {
+        prompt += 'File: $fileName\n$fileContent\n\n';
       }
-      
-      final response = await http.post(
-        Uri.parse(baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'messages': [
-            {'role': 'system', 'content': systemPrompt},
-            {'role': 'user', 'content': fileContent != null && fileName != null && imageBase64 == null ? 'File: $fileName\n\n$fileContent\n\n$userMessage' : userMessage.replaceAll('[Image: $fileName]', '').trim().isEmpty ? userMessage : userMessage}
-          ],
-          'model': model,
-        }),
-      );
+      prompt += 'User: $cleanMessage.isEmpty ? userMessage : cleanMessage';
 
-      if (response.statusCode == 200) {
-        String body = response.body;
-        if (body.isEmpty) {
-          throw Exception('Empty response');
-        }
-        return body;
-      } else {
-        final encodedPrompt = Uri.encodeComponent(fileContent != null && fileName != null && imageBase64 == null 
-            ? 'File: $fileName\n\n$fileContent\n\n$userMessage' 
-            : userMessage.replaceAll(RegExp(r'\[.*?\]\n?'), '').trim());
-        final getResponse = await http.get(Uri.parse('$baseUrl$encodedPrompt?model=$model'));
-        if (getResponse.statusCode == 200 && getResponse.body.isNotEmpty) {
-          return getResponse.body;
-        }
-        throw Exception('Failed to get response');
+      final encoded = Uri.encodeComponent(prompt);
+      final uri =
+          Uri.parse('https://text.pollinations.ai/$encoded?model=$model');
+      final res = await http.get(uri).timeout(const Duration(seconds: 90));
+
+      if (res.statusCode == 200 && res.body.trim().isNotEmpty) {
+        return res.body;
       }
+
+      throw Exception('Failed to get response: ${res.statusCode}');
     } catch (e) {
       throw Exception('Error: $e');
     }

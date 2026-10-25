@@ -13,7 +13,7 @@ class ChatProvider with ChangeNotifier {
   final AIService _service = AIService();
   List<Chat> _chats = [];
   String? _currentChatId;
-  String _selectedModel = 'big-pickle';
+  String _selectedModel = 'openai';
 
   final List<Map<String, String>> _freeModels = [
     {'id': 'big-pickle', 'name': 'Big Pickle'},
@@ -67,7 +67,7 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    _selectedModel = prefs.getString('selected_model') ?? 'big-pickle';
+    _selectedModel = prefs.getString('selected_model') ?? 'openai';
     final chatsJson = prefs.getString('chats');
     if (chatsJson != null) {
       final List decoded = jsonDecode(chatsJson);
