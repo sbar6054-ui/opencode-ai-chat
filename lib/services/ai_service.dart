@@ -22,12 +22,13 @@ class AIService {
           }
         }
       }
-      
-      if (fileContent != null && fileName != null) {
-        systemPrompt += '\n\nThe user has uploaded a file: $fileName\nFile content:\n$fileContent\n\nPlease analyze and answer based on this file.';
-      }
 
-      final prompt = systemPrompt + '\n\nUser: ' + userMessage;
+      String finalPrompt;
+      if (fileContent != null && fileName != null) {
+        finalPrompt = '$systemPrompt\n\nThe user has uploaded a file: $fileName\nFile content:\n$fileContent\n\nUser: $userMessage';
+      } else {
+        finalPrompt = '$systemPrompt\n\nUser: $userMessage';
+      }
       
       final response = await http.post(
         Uri.parse(baseUrl),
@@ -37,24 +38,27 @@ class AIService {
         body: jsonEncode({
           'messages': [
             {'role': 'system', 'content': systemPrompt},
-            {'role': 'user', 'content': fileContent != null ? 'File: $fileName\n\n$content\n\n$userMessage' : userMessage}
+            {'role': 'user', 'content': fileContent != null && fileName != null ? 'File: $fileName\n\n$fileContent\n\n$userMessage' : userMessage}
           ],
           'model': model,
         }),
       );
 
       if (response.statusCode == 200) {
-        return response.body;
+        String body = response.body;
+        if (body.isEmpty) {
+          throw Exception('Empty response');
+        }
+        return body;
       } else {
-        // Fallback to simple GET
-        final encodedPrompt = Uri.encodeComponent(fileContent != null 
+        final encodedPrompt = Uri.encodeComponent(fileContent != null && fileName != null 
             ? 'File: $fileName\n\n$fileContent\n\n$userMessage' 
             : userMessage);
         final getResponse = await http.get(Uri.parse('$baseUrl$encodedPrompt?model=$model'));
-        if (getResponse.statusCode == 200) {
+        if (getResponse.statusCode == 200 && getResponse.body.isNotEmpty) {
           return getResponse.body;
         }
-        throw Exception('Failed to get response: ${response.statusCode}');
+        throw Exception('Failed to get response');
       }
     } catch (e) {
       throw Exception('Error: $e');
