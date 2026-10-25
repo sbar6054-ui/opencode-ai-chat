@@ -16,25 +16,23 @@ class ChatProvider with ChangeNotifier {
   String _selectedModel = 'openai';
 
   final List<Map<String, String>> _freeModels = [
-    {'id': 'big-pickle', 'name': 'Big Pickle'},
-    {'id': 'nemotron-3.5-super-vl', 'name': 'Nemotron 3.5 Super VL'},
-    {'id': 'nemotron-3-ultra', 'name': 'Nemotron 3 Ultra'},
-    {'id': 'mimo-v2.6-flash', 'name': 'MiMo-V2.6-Flash'},
-    {'id': 'nemotron-3.5-lightning', 'name': 'Nemotron 3.5 Lightning'},
-    {'id': 'beam', 'name': 'Beam'},
-    {'id': 'glm-5.3-flash', 'name': 'GLM-5.3-Flash'},
-    {'id': 'flint-40b', 'name': 'Flint 40B'},
-    {'id': 'deepseek-v4.1-flash', 'name': 'DeepSeek V4.1 Flash'},
-    {'id': 'openai', 'name': 'OpenAI'},
+    {'id': 'openai', 'name': 'GPT (OpenAI)'},
     {'id': 'mistral', 'name': 'Mistral'},
-    {'id': 'llama', 'name': 'Llama'},
-    {'id': 'gemini', 'name': 'Gemini'},
+    {'id': 'llama', 'name': 'LLaMA'},
+    {'id': 'gemini', 'name': 'Google Gemini'},
+    {'id': 'deepseek', 'name': 'DeepSeek'},
+    {'id': 'qwen', 'name': 'Qwen'},
+    {'id': 'groq', 'name': 'Groq'},
+    {'id': 'claude', 'name': 'Claude'},
+    {'id': 'big-pickle', 'name': 'Big Pickle'},
+    {'id': 'phi', 'name': 'Phi'},
+    {'id': 'kimi', 'name': 'Kimi'},
   ];
 
   final Set<String> _visionModels = {
-    'nemotron-3.5-super-vl',
     'openai',
     'gemini',
+    'big-pickle',
   };
 
   String? _attachedFileName;
@@ -103,31 +101,30 @@ class ChatProvider with ChangeNotifier {
 
       if (result != null && result.files.single.path != null) {
         File file = File(result.files.single.path!);
-        String content = await file.readAsString();
+        try {
+          String content = await file.readAsString();
+          _attachedFileName = result.files.single.name;
+          _attachedFileContent = content;
+          notifyListeners();
+          return;
+        } catch (e) {
+          // try bytes
+        }
+      }
+      if (result != null && result.files.single.bytes != null) {
         _attachedFileName = result.files.single.name;
-        _attachedFileContent = content;
+        _attachedFileContent = String.fromCharCodes(result.files.single.bytes!);
         notifyListeners();
       }
     } catch (e) {
-      try {
-        FilePickerResult? result = await FilePicker.platform.pickFiles(
-          type: FileType.any,
-        );
-        if (result != null && result.files.single.bytes != null) {
-          _attachedFileName = result.files.single.name;
-          _attachedFileContent = String.fromCharCodes(result.files.single.bytes!);
-          notifyListeners();
-        }
-      } catch (e2) {
-        print(e2);
-      }
+      print(e);
     }
   }
 
   Future<void> pickImage() async {
     try {
       final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
       if (image != null) {
         final bytes = await image.readAsBytes();
         _attachedImagePath = image.path;
@@ -173,9 +170,9 @@ class ChatProvider with ChangeNotifier {
 
     String messageContent = content;
     if (_attachedFileName != null && _attachedImageBase64 == null) {
-      messageContent = '[$_attachedFileName]\\n$content';
+      messageContent = '[$_attachedFileName] ${content.isEmpty ? "Analisis file ini" : content}';
     } else if (_attachedImageBase64 != null) {
-      messageContent = '[Image: $_attachedFileName]\\n$content';
+      messageContent = '[Image: $_attachedFileName] ${content.isEmpty ? "Analisis gambar ini" : content}';
     }
 
     final userMessage = Message(
@@ -186,8 +183,9 @@ class ChatProvider with ChangeNotifier {
     );
     currentChat!.messages.add(userMessage);
 
-    if (currentChat!.title == 'Chat Baru' && currentChat!.messages.length == 1) {
-      currentChat!.title = content.isNotEmpty ? (content.length > 30 ? '${content.substring(0, 30)}...' : content) : 'Image Chat';
+    if (currentChat!.title == 'Chat Baru' && (content.isNotEmpty || _attachedFileName != null)) {
+      String titleSource = content.isNotEmpty ? content : (_attachedFileName ?? 'Chat');
+      currentChat!.title = titleSource.length > 30 ? '${titleSource.substring(0, 30)}...' : titleSource;
     }
 
     notifyListeners();
@@ -196,7 +194,7 @@ class ChatProvider with ChangeNotifier {
       if (_attachedImageBase64 != null && !supportsVision) {
         final errorMessage = Message(
           id: uuid.v4(),
-          content: 'Model ini ga support gambar. Pindah ke model yang support vision kayak Nemotron 3.5 Super VL, OpenAI, atau Gemini ya.',
+          content: 'Model ini nggak support gambar. Pake model yang ada icon vision atau pilih OpenAI/Gemini/Big Pickle ya.',
           isUser: false,
           timestamp: DateTime.now(),
         );
@@ -228,7 +226,7 @@ class ChatProvider with ChangeNotifier {
     } catch (e) {
       final errorMessage = Message(
         id: uuid.v4(),
-        content: 'Error: $e',
+        content: 'Error: ${e.toString().replaceAll('Exception: ', '')}\n\nCoba ganti model atau coba lagi ya.',
         isUser: false,
         timestamp: DateTime.now(),
       );
