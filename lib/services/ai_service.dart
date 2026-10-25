@@ -4,10 +4,11 @@ import 'package:http/http.dart' as http;
 class AIService {
   final List<String> _fallbackModels = [
     'openai',
-    'mistral',
-    'deepseek',
     'gemini',
+    'deepseek',
+    'mistral',
     'llama',
+    'qwen',
   ];
 
   Future<String> sendMessage({
@@ -63,7 +64,7 @@ class AIService {
       }
     }
 
-    throw Exception('Semua model lagi sibuk. Coba lagi beberapa saat ya.');
+    throw Exception('Gagal konek. Coba lagi ya.');
   }
 
   Future<String> _tryModel({
@@ -74,71 +75,78 @@ class AIService {
     String? imageBase64,
   }) async {
     try {
+      List<Map<String, dynamic>> userContent = [];
       if (imageBase64 != null) {
-        try {
-          final res = await http
-              .post(
-                Uri.parse('https://text.pollinations.ai/openai'),
-                headers: {'Content-Type': 'application/json'},
-                body: jsonEncode({
-                  'model': model,
-                  'messages': [
-                    {
-                      'role': 'system',
-                      'content':
-                          'You are GMpro87Ai, a helpful, smart and detailed AI assistant.'
-                    },
-                    {
-                      'role': 'user',
-                      'content': [
-                        {'type': 'text', 'text': cleanMessage},
-                        {
-                          'type': 'image_url',
-                          'image_url': {'url': 'data:image/jpeg;base64,$imageBase64'}
-                        }
-                      ]
-                    }
-                  ],
-                  'temperature': 0.7,
-                  'max_tokens': 2048,
-                }),
-              )
-              .timeout(const Duration(seconds: 60));
+        userContent.add({
+          'type': 'image_url',
+          'image_url': {'url': 'data:image/jpeg;base64,$imageBase64'}
+        });
+      }
+      userContent.add({
+        'type': 'text',
+        'text': imageBase64 != null
+            ? cleanMessage
+            : (fileContent != null && fileName != null
+                ? 'File: $fileName\n${fileContent.length > 6000 ? fileContent.substring(0, 6000) + "\n[truncated]" : fileContent}\n\n$cleanMessage'
+                : cleanMessage)
+      });
 
-          if (res.statusCode == 200 && res.body.isNotEmpty) {
-            try {
-              final data = jsonDecode(res.body);
-              if (data['choices'] != null && data['choices'].isNotEmpty) {
-                final content = data['choices'][0]['message']['content'];
-                if (content != null && content.toString().isNotEmpty) {
-                  return content.toString();
-                }
+      try {
+        final res = await http
+            .post(
+              Uri.parse('https://text.pollinations.ai/openai'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'model': model,
+                'messages': [
+                  {
+                    'role': 'system',
+                    'content': 'You are GMpro87Ai, a helpful, concise, and accurate AI assistant. Answer directly and clearly.'
+                  },
+                  {'role': 'user', 'content': userContent.length == 1 && userContent[0]['type'] == 'text' ? cleanMessage : userContent}
+                ],
+                'temperature': 0.7,
+                'max_tokens': 2048,
+              }),
+            )
+            .timeout(const Duration(seconds: 90));
+
+        if (res.statusCode == 200 && res.body.isNotEmpty) {
+          try {
+            final data = jsonDecode(res.body);
+            if (data['choices'] != null && data['choices'].isNotEmpty) {
+              final content = data['choices'][0]['message']?['content'];
+              if (content != null && content.toString().trim().isNotEmpty) {
+                return content.toString();
               }
-            } catch (_) {}
+            }
+          } catch (_) {}
+          // if it's plain text
+          if (!res.body.trim().startsWith('{')) {
             return res.body;
           }
-        } catch (_) {}
-      }
+        }
+      } catch (_) {}
 
-      String prompt = 'You are GMpro87Ai, a helpful, smart and detailed AI assistant.\n\n';
-      if (fileContent != null && fileName != null) {
-        String filePrompt = fileContent.length > 8000
-            ? fileContent.substring(0, 8000) + '\n\n[File truncated...]'
-            : fileContent;
-        prompt += 'File: $fileName\n$filePrompt\n\n';
-      }
-      prompt += 'User Question:\n$cleanMessage\n\nAnswer in detail and clearly.';
+      // fallback to GET
+      try {
+        String prompt = 'You are GMpro87Ai. ';
+        if (fileContent != null && fileName != null) {
+          String filePrompt = fileContent.length > 4000
+              ? fileContent.substring(0, 4000)
+              : fileContent;
+          prompt += 'File: $fileName\n$filePrompt\n\n';
+        }
+        prompt += cleanMessage;
+        final encoded = Uri.encodeComponent(prompt);
+        final uri = Uri.parse('https://text.pollinations.ai/$encoded?model=$model');
+        final res = await http.get(uri).timeout(const Duration(seconds: 90));
+        if (res.statusCode == 200 && res.body.trim().isNotEmpty) {
+          return res.body;
+        }
+      } catch (_) {}
 
-      final encoded = Uri.encodeComponent(prompt);
-      final uri = Uri.parse('https://text.pollinations.ai/$encoded?model=$model');
-
-      final res = await http.get(uri).timeout(const Duration(seconds: 60));
-
-      if (res.statusCode == 200 && res.body.trim().isNotEmpty) {
-        return res.body;
-      }
-
-      return 'ERROR: ${res.statusCode}';
+      return 'ERROR: failed';
     } catch (e) {
       return 'ERROR: $e';
     }
