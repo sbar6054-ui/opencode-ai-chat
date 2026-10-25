@@ -29,7 +29,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _sendMessage() async {
-    if (_controller.text.trim().isEmpty && Provider.of<ChatProvider>(context, listen: false).attachedFileName == null) return;
+    if (_controller.text.trim().isEmpty && Provider.of<ChatProvider>(context, listen: false).attachedFileName == null && Provider.of<ChatProvider>(context, listen: false).attachedImageBase64 == null) return;
     final provider = Provider.of<ChatProvider>(context, listen: false);
     
     setState(() {
@@ -87,7 +87,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'AI Gratis • Bisa baca semua file',
+                        'AI Gratis • Bisa baca semua file & gambar',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
@@ -105,7 +105,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   },
                 ),
         ),
-        if (provider.attachedFileName != null)
+        if (provider.attachedFileName != null || provider.attachedImageBase64 != null)
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             padding: const EdgeInsets.all(8),
@@ -115,7 +115,10 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.attach_file, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                Icon(
+                  provider.attachedImageBase64 != null ? Icons.image : Icons.attach_file,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -144,6 +147,10 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Row(
             children: [
               IconButton(
+                onPressed: _isSending ? null : () => provider.pickImage(),
+                icon: const Icon(Icons.image),
+              ),
+              IconButton(
                 onPressed: _isSending ? null : () => provider.pickFile(),
                 icon: const Icon(Icons.attach_file),
               ),
@@ -151,7 +158,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: TextField(
                   controller: _controller,
                   decoration: InputDecoration(
-                    hintText: 'Ketik pesan atau kirim file...',
+                    hintText: 'Ketik pesan atau kirim file/gambar...',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),

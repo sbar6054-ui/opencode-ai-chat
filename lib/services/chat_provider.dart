@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
 import 'ai_service.dart';
@@ -30,8 +31,16 @@ class ChatProvider with ChangeNotifier {
     {'id': 'gemini', 'name': 'Gemini'},
   ];
 
+  final Set<String> _visionModels = {
+    'nemotron-3.5-super-vl',
+    'openai',
+    'gemini',
+  };
+
   String? _attachedFileName;
   String? _attachedFileContent;
+  String? _attachedImagePath;
+  String? _attachedImageBase64;
 
   ChatProvider() {
     _loadData();
@@ -43,6 +52,9 @@ class ChatProvider with ChangeNotifier {
   List<Map<String, String>> get freeModels => _freeModels;
   String? get attachedFileName => _attachedFileName;
   String? get attachedFileContent => _attachedFileContent;
+  String? get attachedImagePath => _attachedImagePath;
+  String? get attachedImageBase64 => _attachedImageBase64;
+  bool get supportsVision => _visionModels.contains(_selectedModel);
 
   Chat? get currentChat {
     if (_currentChatId == null) return null;
@@ -112,9 +124,27 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
+  Future<void> pickImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        _attachedImagePath = image.path;
+        _attachedImageBase64 = base64Encode(bytes);
+        _attachedFileName = image.name;
+        notifyListeners();
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
   void clearAttachment() {
     _attachedFileName = null;
     _attachedFileContent = null;
+    _attachedImagePath = null;
+    _attachedImageBase64 = null;
     notifyListeners();
   }
 
@@ -142,8 +172,10 @@ class ChatProvider with ChangeNotifier {
     const uuid = Uuid();
 
     String messageContent = content;
-    if (_attachedFileName != null) {
-      messageContent = '[$_attachedFileName]\n$content';
+    if (_attachedFileName != null && _attachedImageBase64 == null) {
+      messageContent = '[$_attachedFileName]\\n$content';
+    } else if (_attachedImageBase64 != null) {
+      messageContent = '[Image: $_attachedFileName]\\n$content';
     }
 
     final userMessage = Message(
@@ -155,17 +187,32 @@ class ChatProvider with ChangeNotifier {
     currentChat!.messages.add(userMessage);
 
     if (currentChat!.title == 'Chat Baru' && currentChat!.messages.length == 1) {
-      currentChat!.title = content.length > 30 ? '${content.substring(0, 30)}...' : content;
+      currentChat!.title = content.isNotEmpty ? (content.length > 30 ? '${content.substring(0, 30)}...' : content) : 'Image Chat';
     }
 
     notifyListeners();
 
     try {
+      if (_attachedImageBase64 != null && !supportsVision) {
+        final errorMessage = Message(
+          id: uuid.v4(),
+          content: 'Model ini ga support gambar. Pindah ke model yang support vision kayak Nemotron 3.5 Super VL, OpenAI, atau Gemini ya.',
+          isUser: false,
+          timestamp: DateTime.now(),
+        );
+        currentChat!.messages.add(errorMessage);
+        clearAttachment();
+        saveData();
+        notifyListeners();
+        return;
+      }
+
       final response = await _service.sendMessage(
         model: _selectedModel,
         messages: currentChat!.messages,
         fileContent: _attachedFileContent,
         fileName: _attachedFileName,
+        imageBase64: _attachedImageBase64,
       );
 
       final aiMessage = Message(
