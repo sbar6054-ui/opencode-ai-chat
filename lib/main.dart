@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,7 +17,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F1026),
+        scaffoldBackgroundColor: const Color(0xFF151515),
       ),
       home: const WebViewScreen(),
     );
@@ -39,21 +38,13 @@ class _WebViewScreenState extends State<WebViewScreen> {
   @override
   void initState() {
     super.initState();
-    late final PlatformWebViewControllerCreationParams params;
-    if (WebViewPlatform.instance is WebKitWebViewPlatform) {
-      params = WebKitWebViewControllerCreationParams(
-        allowsInlineMediaPlayback: true,
-        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
-      );
-    } else {
-      params = const PlatformWebViewControllerCreationParams();
-    }
 
-    controller = WebViewController.fromPlatformCreationParams(params)
+    controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF0F1026))
+      ..setBackgroundColor(const Color(0xFF151515))
+      ..enableZoom(false)
       ..setUserAgent(
-          'Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36')
+          'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36')
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
@@ -62,12 +53,15 @@ class _WebViewScreenState extends State<WebViewScreen> {
           onPageFinished: (String url) {
             if (mounted) setState(() => isLoading = false);
           },
+          onNavigationRequest: (NavigationRequest request) {
+            return NavigationDecision.navigate;
+          },
         ),
       )
-      ..loadRequest(Uri.parse('https://app.opencode.ai'));
-    
+      ..loadRequest(Uri.parse('https://app.opencode.ai/'));
+
     if (controller.platform is AndroidWebViewController) {
-      AndroidWebViewController.enableDebugging(true);
+      AndroidWebViewController.enableDebugging(false);
       (controller.platform as AndroidWebViewController)
           .setMediaPlaybackRequiresUserGesture(false);
     }
@@ -76,6 +70,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF151515),
       body: SafeArea(
         child: Stack(
           children: [
