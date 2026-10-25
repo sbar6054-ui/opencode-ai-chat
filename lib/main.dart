@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'screens/home_screen.dart';
+import 'services/chat_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,76 +13,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'GMpro87Ai',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF151515),
-      ),
-      home: const WebViewScreen(),
-    );
-  }
-}
-
-class WebViewScreen extends StatefulWidget {
-  const WebViewScreen({super.key});
-
-  @override
-  State<WebViewScreen> createState() => _WebViewScreenState();
-}
-
-class _WebViewScreenState extends State<WebViewScreen> {
-  late final WebViewController controller;
-  bool isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-
-    controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF151515))
-      ..enableZoom(false)
-      ..setUserAgent(
-          'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36')
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (String url) {
-            if (mounted) setState(() => isLoading = true);
-          },
-          onPageFinished: (String url) {
-            if (mounted) setState(() => isLoading = false);
-          },
-          onNavigationRequest: (NavigationRequest request) {
-            return NavigationDecision.navigate;
-          },
+    return ChangeNotifierProvider(
+      create: (context) => ChatProvider(),
+      child: MaterialApp(
+        title: 'GMpro87Ai',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF6366F1),
+            brightness: Brightness.dark,
+          ),
+          textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+          scaffoldBackgroundColor: const Color(0xFF0F0F0F),
+          cardColor: const Color(0xFF1A1A1A),
         ),
-      )
-      ..loadRequest(Uri.parse('https://app.opencode.ai/'));
-
-    if (controller.platform is AndroidWebViewController) {
-      AndroidWebViewController.enableDebugging(false);
-      (controller.platform as AndroidWebViewController)
-          .setMediaPlaybackRequiresUserGesture(false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF151515),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            WebViewWidget(controller: controller),
-            if (isLoading)
-              const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              ),
-          ],
-        ),
+        home: const HomeScreen(),
       ),
     );
   }
